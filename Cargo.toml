@@ -1,0 +1,12 @@
+[package]
+name = "brs_vox_terrain"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+brickadia = "0.1"
+noise = "0.7.0"
+vox-format = "0.1"
+simdnoise = "3.1.6"
