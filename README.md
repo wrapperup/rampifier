@@ -6,7 +6,7 @@
 <br>
 <p align=center>
 This repository hosts a sample terrain generation tool and the br-vox-rampify library, which
-is generalized for any voxel
+is generalized for any voxel mesh (some conditions apply)
 
 ## How
 This sample tool generates bricks in 3 passes:
