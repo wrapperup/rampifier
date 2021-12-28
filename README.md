@@ -1,5 +1,5 @@
 <h1 align=center>Rampified Terrain Generator</h1>
----
+
 This repository hosts a sample terrain generation tool and the br-vox-rampify library, which
 is generalized for any voxel
 
