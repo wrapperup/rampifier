@@ -1,5 +1,5 @@
 [package]
-name = "brs_vox_terrain"
+name = "br-ramp-terrain"
 version = "0.1.0"
 edition = "2021"
 
