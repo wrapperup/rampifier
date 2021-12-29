@@ -8,5 +8,3 @@ edition = "2021"
 [dependencies]
 brickadia = "0.1"
 noise = "0.7.0"
-vox-format = "0.1"
-simdnoise = "3.1.6"

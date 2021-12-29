@@ -1,19 +1,12 @@
 mod rampify;
 
 use std::{fs::File};
-use std::thread;
-
-use vox_format;
-use simdnoise::NoiseBuilder;
-
-use brickadia::{
-    save::{Brick, BrickColor, BrickOwner, Color, SaveData, Size, User},
-    write::SaveWriter,
-};
-use brickadia::save::{Direction, Rotation};
 use noise::{RidgedMulti, Seedable};
 use crate::rampify::{Rampify, RampifyConfig};
-
+use brickadia::{
+    save::*,
+    write::SaveWriter,
+};
 fn main() {
     // Size of a chunk to be processed on a thread.
     const CHUNK_X_SIZE: usize = 64;

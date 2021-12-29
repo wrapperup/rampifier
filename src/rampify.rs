@@ -1,8 +1,6 @@
 use brickadia::save::{Brick, BrickColor, Color, Size, Direction, Rotation};
 use std::vec;
 use std::ops;
-use brickadia::save::Size::Procedural;
-use vox_format::chunk::ChunkId::Vox;
 
 #[derive(Copy, Clone, Debug)]
 pub struct VoxVector (pub isize, pub isize, pub isize);
@@ -560,7 +558,7 @@ impl Rampify {
             ramp.size = Size::Procedural(run * brick_w, 1 * brick_l, rise * brick_h);
         }
 
-        if let Procedural(w, l, h) = ramp.size {
+        if let Size::Procedural(w, l, h) = ramp.size {
             let size = (w, l, h);
             ramp.position = Self::offset_pos(ramp.position, size, ramp.rotation.clone());
 
