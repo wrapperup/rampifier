@@ -1,25 +1,38 @@
 mod rampify;
 
-use std::{fs::File};
+use std::{env, fs::File};
 use noise::{RidgedMulti, Seedable};
 use crate::rampify::{Rampify, RampifyConfig};
 use brickadia::{
     save::*,
     write::SaveWriter,
 };
+
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
     // Size of a chunk to be processed on a thread.
-    const CHUNK_X_SIZE: usize = 64;
-    const CHUNK_Y_SIZE: usize = 64;
-    const CHUNK_Z_SIZE: usize = 64 * 3;
+    const DEFAULT_CHUNK_X_SIZE: usize = 64;
+    const DEFAULT_CHUNK_Y_SIZE: usize = 64;
+    const DEFAULT_CHUNK_Z_SIZE: usize = 64 * 3;
 
     // Length of grid vector.
-    const LEN_X: usize = CHUNK_X_SIZE * 1;
-    const LEN_Y: usize = CHUNK_Y_SIZE * 1;
-    const LEN_Z: usize = CHUNK_Z_SIZE * 1;
+    const DEFAULT_LEN_X: usize = DEFAULT_CHUNK_X_SIZE * 1;
+    const DEFAULT_LEN_Y: usize = DEFAULT_CHUNK_Y_SIZE * 1;
+    const DEFAULT_LEN_Z: usize = DEFAULT_CHUNK_Z_SIZE * 1;
+
+    // Default save path.
+    const DEFAULT_SAVE_PATH: &str = "./out.brs";
+
+    let mut save_location = DEFAULT_SAVE_PATH;
+
+    if args.len() > 1
+    {
+        save_location = &args[1];
+    }
 
     // This uses u8::MAX to identify an empty voxel. Should we use Option<u8> instead?
-    let mut grid: Vec<u8> = vec![u8::MAX; LEN_X * LEN_Y * LEN_Z];
+    let mut grid: Vec<u8> = vec![u8::MAX; DEFAULT_LEN_X * DEFAULT_LEN_Y * DEFAULT_LEN_Z];
 
     let public = User {
         name: "Terrain".into(),
@@ -53,12 +66,12 @@ fn main() {
 
     println!("Generating voxel data...");
     let get_index = |pos: (usize, usize, usize)| -> usize {
-        pos.0 + pos.1 * LEN_X + pos.2  * LEN_X * LEN_Y
+        pos.0 + pos.1 * DEFAULT_LEN_X + pos.2  * DEFAULT_LEN_X * DEFAULT_LEN_Y
     };
 
-    for z in 0..LEN_Z {
-        for y in 0..LEN_Y {
-            for x in 0..LEN_X {
+    for z in 0..DEFAULT_LEN_Z {
+        for y in 0..DEFAULT_LEN_Y {
+            for x in 0..DEFAULT_LEN_X {
                 // populate da grid
 
                 let scale = 0.04;
@@ -93,7 +106,7 @@ fn main() {
     println!("Generating ramps...");
 
     let mut rampifier = Rampify::new(
-        (LEN_X, LEN_Y, LEN_Z),
+        (DEFAULT_LEN_X, DEFAULT_LEN_Y, DEFAULT_LEN_Z),
         grid,
         RampifyConfig::default()
     );
@@ -111,9 +124,9 @@ fn main() {
 
     println!("\nFilling Gaps...");
 
-    for z in 0..LEN_Z {
-        for y in 0..LEN_Y {
-            for x in 0..LEN_X {
+    for z in 0..DEFAULT_LEN_Z {
+        for y in 0..DEFAULT_LEN_Y {
+            for x in 0..DEFAULT_LEN_X {
                 if grid[get_index((x, y, z))] == u8::MAX {
                     continue
                 }
@@ -124,9 +137,9 @@ fn main() {
                 brick.size = Size::Procedural(5, 5, 2);
 
                 brick.color = BrickColor::Unique(Color {
-                    r: ((x as f32 / LEN_X as f32) * 255.0) as u8,
-                    g: ((y as f32 / LEN_X as f32) * 255.0) as u8,
-                    b: ((z as f32 / LEN_Z as f32) * 255.0) as u8,
+                    r: ((x as f32 / DEFAULT_LEN_X as f32) * 255.0) as u8,
+                    g: ((y as f32 / DEFAULT_LEN_X as f32) * 255.0) as u8,
+                    b: ((z as f32 / DEFAULT_LEN_Z as f32) * 255.0) as u8,
                     a: 255,
                 });
 
@@ -139,7 +152,6 @@ fn main() {
 
 
     // write out the save
-    let save_location = "C:/Users/wrapp/AppData/Local/Brickadia/Saved/Builds/out.brs";
     let file = File::create(save_location);
 
     match file {
@@ -148,10 +160,10 @@ fn main() {
                 .write()
                 .unwrap();
 
-            println!("Save written");
+            println!("Save written to {}", save_location);
         },
         Err(error) => {
-            println!("{}", error.to_string())
+            println!("Could not write to {}, {}", save_location, error.to_string())
         }
     }
 }
