@@ -553,14 +553,6 @@ impl Rampify {
         ramp.direction = if is_floor { Direction::ZPositive } else { Direction::ZNegative };
         ramp.rotation = rotation;
 
-        if !is_floor {
-            ramp.rotation = match ramp.rotation {
-                Rotation::Deg0 => Rotation::Deg180,
-                Rotation::Deg180 => Rotation::Deg0,
-                _ => ramp.rotation,
-            }
-        }
-
         ramp.position = (x * brick_w as i32 * 2, y * brick_l as i32 * 2, z * brick_h as i32 * 2);
         ramp.color = color;
 
@@ -576,6 +568,14 @@ impl Rampify {
 
             if !is_floor {
                 ramp.position.2 -= h as i32 * 2 - brick_h as i32 - 2;
+            }
+        }
+
+        if !is_floor {
+            ramp.rotation = match ramp.rotation {
+                Rotation::Deg0 => Rotation::Deg180,
+                Rotation::Deg180 => Rotation::Deg0,
+                _ => ramp.rotation,
             }
         }
 
