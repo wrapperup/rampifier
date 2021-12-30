@@ -38,6 +38,7 @@ version = "0.1.0"
 dependencies = [
  "brickadia",
  "noise",
+ "vox-format",
 ]
 
 [[package]]
@@ -240,6 +241,15 @@ name = "libc"
 version = "0.2.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b03d17f364a3a042d5e5d46b053bbbf82c92c9430c592dd4c064dc6ee997125"
+
+[[package]]
+name = "log"
+version = "0.4.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
+dependencies = [
+ "cfg-if",
+]
 
 [[package]]
 name = "memoffset"
@@ -554,6 +564,17 @@ name = "uuid"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+
+[[package]]
+name = "vox-format"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b41c07d4bfb99286592fe2fbe25022360a305e5c800e1bc93d9db280c24db1aa"
+dependencies = [
+ "byteorder",
+ "log",
+ "thiserror",
+]
 
 [[package]]
 name = "wasi"

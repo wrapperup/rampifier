@@ -12,8 +12,8 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // Size of a chunk to be processed on a thread.
-    const DEFAULT_CHUNK_X_SIZE: usize = 64;
-    const DEFAULT_CHUNK_Y_SIZE: usize = 64;
+    const DEFAULT_CHUNK_X_SIZE: usize = 64 * 1;
+    const DEFAULT_CHUNK_Y_SIZE: usize = 64 * 1;
     const DEFAULT_CHUNK_Z_SIZE: usize = 64 * 3;
 
     // Length of grid vector.
@@ -82,18 +82,22 @@ fn main() {
                     z as f64 * scale / 3.0
                 ]);
 
-                let val = val - ridged.get([
-                    x as f64 * scale,
-                    y as f64 * scale,
-                    z as f64 * scale / 3.0
-                ]) * 0.7;
+                let val = val + ridged.get([
+                    x as f64 * scale / 2.0,
+                    y as f64 * scale / 2.0,
+                    z as f64 * scale / 2.0 / 3.0
+                ]) * 0.6;
 
-                let val = (val + 0.3) - ((z as f64 * 0.06) + 0.0);
+                let val = val - (
+                    (x as i32 - DEFAULT_CHUNK_X_SIZE as i32 / 2).abs()
+                    + (y as i32 - DEFAULT_CHUNK_Y_SIZE as i32 / 2).abs()
+                    + (z as i32 - DEFAULT_CHUNK_Z_SIZE as i32 / 2).abs()
+                    ) as f64 * 0.01;
 
                 let val = val + 0.5;
                 let mut val = (val * 254.0) as u8;
 
-                if val < 5 {
+                if val < 30 {
                     val = u8::MAX;
                 }
 
@@ -113,11 +117,15 @@ fn main() {
 
     // Generate ramps
     let ramps = &mut rampifier.generate_ramps(true);
+    let ramps2 = &mut rampifier.generate_ramps(false);
 
     let ramp_count = ramps.len();
-    save.bricks.append(ramps);
+    let ramp2_count = ramps2.len();
 
-    println!(" - Generated {} ramps", ramp_count);
+    save.bricks.append(ramps);
+    save.bricks.append(ramps2);
+
+    println!(" - Generated {} ramps", ramp_count + ramp2_count);
 
     // Move grid back out of the rampifier to do further processing.
     let mut grid = rampifier.move_grid();

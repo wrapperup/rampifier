@@ -45,10 +45,10 @@ impl ops::Mul<VoxVector> for VoxVector {
     }
 }
 
-impl ops::Mul<usize> for VoxVector {
+impl ops::Mul<isize> for VoxVector {
     type Output = VoxVector;
 
-    fn mul(self, rhs: usize) -> Self::Output {
+    fn mul(self, rhs: isize) -> Self::Output {
         VoxVector(self.0 * rhs as isize, self.1 * rhs as isize, self.2 * rhs as isize)
     }
 }
@@ -280,32 +280,35 @@ impl Rampify {
     }
 
     // Returns change in height from test pt. This only goes upwards, since we scan from the bottom of the world.
-    fn get_slope_from_offset(&self, pos: VoxVector, is_floor: bool) -> Option<i32> {
+    fn get_slope_from_offset(&self, pos: VoxVector, is_floor: bool) -> i32 {
         // Invalid state, return none.
-        if is_floor && !self.vox_exists(pos) || !is_floor && self.vox_exists(pos) {
-            return None;
+        if !self.vox_exists(pos) {
+            return i32::MIN;
         }
+
+        let up = if is_floor {
+            VoxVector(0, 0,  1)
+        }
+        else {
+            VoxVector(0, 0, -1)
+        };
 
         const MAX_SEARCH: usize = 32;
 
         for i in 1..MAX_SEARCH {
-            let pos_y = pos + VoxVector(0, 0, i as isize);
-
-            // Done is true if:
-            // If we are searching from inside floor upwards and we hit air
-            // If we are searching from below the ceiling upwards and hit a voxel.
-            let done = is_floor && !self.vox_exists(pos_y) || !is_floor && self.vox_exists(pos_y);
-
+            let pos_y = pos + up * i as isize;
+            let done = !self.vox_exists(pos_y);
             if done {
-                return Some(i as i32);
+                return i as i32;
             }
         }
 
-        Some(MAX_SEARCH as i32 - 1)
+        MAX_SEARCH as i32 - 1
     }
 
     // Returns length and height of a ramp.
     fn fit_ramp(&self, pos: VoxVector, rot: Rotation, is_floor: bool) -> Option<(usize, usize)> {
+        let VoxVector(x, y, z) = pos;
         let forward = VoxVector::forward_vec(rot);
         let up = if is_floor {
             VoxVector(0, 0,  1)
@@ -314,13 +317,21 @@ impl Rampify {
             VoxVector(0, 0, -1)
         };
 
-        let mut run = 0usize;
-        let mut rise = 0usize;
+        let mut run = 0isize;
+        let mut rise = 0isize;
 
         // Try increasing the run.
         for i in 0..self.config.ramp_max_run - 1 {
             // If the vox above is air (or below if ceiling), we continue running.
-            if !self.vox_exists(pos + up + (forward * run)) && self.vox_exists(pos + (forward * (run + 1))) {
+            let pos_air = pos + up + (forward * run);
+            let pos_forward = pos + (forward * (run + 1));
+
+            let has_air = !self.vox_exists(pos_air);
+            let has_vox_forward = self.vox_exists(pos_forward);
+
+            let pog = true;
+
+            if has_air && has_vox_forward {
                 run += 1;
             }
             else {
@@ -335,9 +346,11 @@ impl Rampify {
 
         for i in 1..self.config.ramp_max_rise {
             // Rise until we hit the limit or we find air above (or below if ceiling).
-            if self.vox_exists(pos + (up * (rise)) + (forward * (run))) {
+            let pos_air = pos + (up * (rise)) + (forward * (run));
+
+            if self.vox_exists(pos_air) {
                 // We've rose too long, this won't be valid.
-                if rise == self.config.ramp_max_rise {
+                if rise == self.config.ramp_max_rise as isize {
                     return None;
                 }
                 rise += 1;
@@ -353,7 +366,7 @@ impl Rampify {
         let mut add_one = 0;
         for i in 1..self.config.ramp_max_run {
             let pos = pos + (up * (rise)) + (forward * (run));
-            let pos = pos + forward * i;
+            let pos = pos + forward * i as isize;
 
             // Is there air above and ahead of this ramp?
             if !self.vox_exists(pos) {
@@ -371,7 +384,7 @@ impl Rampify {
             return None;
         }
 
-        if rise < self.config.ramp_min_height {
+        if rise < self.config.ramp_min_height as isize {
             return None;
         }
 
@@ -382,11 +395,6 @@ impl Rampify {
     fn best_ramp_rotation(&self, pos: VoxVector, is_floor: bool) -> Option<Rotation> {
         // Floor must have air above it.
         if !self.vox_exists(pos + VoxVector(0, 0, 1)) && !self.vox_exists(pos + VoxVector(0, 0, -1)) {
-            return None;
-        }
-
-        // Ceiling must have air below it.
-        if false {
             return None;
         }
 
@@ -432,7 +440,7 @@ impl Rampify {
         ];
 
         // Stored "slopes" for each direction.
-        let mut heights: [Option<i32>; DIR_ROT_HEIGHT_TABLE.len()] = [None; DIR_ROT_HEIGHT_TABLE.len()];
+        let mut heights = [i32::MIN; 4];
 
         /* Valid rotations are ones who have air behind them.
          * They must also be either a ceiling or floor voxel to
@@ -470,12 +478,15 @@ impl Rampify {
         for i in 0..heights.len() {
             let rot = DIR_ROT_HEIGHT_TABLE[i].2.clone();
 
-            if let Some(height) = heights[i] {
-                if max_height < height {
-                    max_height = height;
-                    best_rotation = Some(rot);
-                }
+            let height = heights[i];
+            if max_height < height {
+                max_height = height;
+                best_rotation = Some(rot);
             }
+        }
+
+        if max_height > 0 {
+            println!("{}", max_height);
         }
 
         if let Some(rotation) = best_rotation {
@@ -548,7 +559,17 @@ impl Rampify {
 
         // Select ramp or wedge depending on the size.
         ramp.asset_name_index = if run < 2 { self.config.wedge_index } else { self.config.ramp_index };
+        ramp.direction = if is_floor { Direction::ZPositive } else { Direction::ZNegative };
         ramp.rotation = rotation;
+
+        if !is_floor {
+            ramp.rotation = match ramp.rotation {
+                Rotation::Deg0 => Rotation::Deg180,
+                Rotation::Deg180 => Rotation::Deg0,
+                _ => ramp.rotation,
+            }
+        }
+
         ramp.position = (x * brick_w as i32 * 2, y * brick_l as i32 * 2, z * brick_h as i32 * 2);
         ramp.color = color;
 
@@ -563,7 +584,7 @@ impl Rampify {
             ramp.position = Self::offset_pos(ramp.position, size, ramp.rotation.clone());
 
             if !is_floor {
-                ramp.position.2 -= h as i32 * 2 - brick_h as i32;
+                ramp.position.2 -= h as i32 * 2 - brick_h as i32 - 2;
             }
         }
 
@@ -586,12 +607,14 @@ impl Rampify {
         ramps.reserve(est);
 
         let w = self.size.0 as isize;
-        let l = self.size.0 as isize;
-        let h = self.size.0 as isize;
+        let l = self.size.1 as isize;
+        let h = self.size.2 as isize;
 
-        for z in 0..w {
+        for z in 0..h {
             for y in 0..l {
-                for x in 0..h {
+                for x in 0..w {
+                    let z = if gen_floor_else_ceil { z } else { h - 1 - z };
+
                     let pos = VoxVector(x, y, z);
 
                     // Is there a voxel here?
@@ -606,7 +629,7 @@ impl Rampify {
                                     a: 255
                                 });
 
-                                let ramp = self.create_ramp(pos, run, rise, rot, color, true, true);
+                                let ramp = self.create_ramp(pos, run, rise, rot, color, true, gen_floor_else_ceil);
                                 ramps.push(ramp);
                             }
                         }
