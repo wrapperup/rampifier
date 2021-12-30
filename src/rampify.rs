@@ -323,13 +323,8 @@ impl Rampify {
         // Try increasing the run.
         for i in 0..self.config.ramp_max_run - 1 {
             // If the vox above is air (or below if ceiling), we continue running.
-            let pos_air = pos + up + (forward * run);
-            let pos_forward = pos + (forward * (run + 1));
-
-            let has_air = !self.vox_exists(pos_air);
-            let has_vox_forward = self.vox_exists(pos_forward);
-
-            let pog = true;
+            let has_air = !self.vox_exists(pos + up + (forward * run));
+            let has_vox_forward = self.vox_exists(pos + (forward * (run + 1)));
 
             if has_air && has_vox_forward {
                 run += 1;
@@ -483,10 +478,6 @@ impl Rampify {
                 max_height = height;
                 best_rotation = Some(rot);
             }
-        }
-
-        if max_height > 0 {
-            println!("{}", max_height);
         }
 
         if let Some(rotation) = best_rotation {
