@@ -12,9 +12,9 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // Size of a chunk to be processed on a thread.
-    const DEFAULT_CHUNK_X_SIZE: usize = 64 * 1;
-    const DEFAULT_CHUNK_Y_SIZE: usize = 64 * 1;
-    const DEFAULT_CHUNK_Z_SIZE: usize = 64 * 3;
+    const DEFAULT_CHUNK_X_SIZE: usize = 64 * 4;
+    const DEFAULT_CHUNK_Y_SIZE: usize = 64 * 4;
+    const DEFAULT_CHUNK_Z_SIZE: usize = 64 * 2;
 
     // Length of grid vector.
     const DEFAULT_LEN_X: usize = DEFAULT_CHUNK_X_SIZE * 1;
@@ -89,9 +89,9 @@ fn main() {
                 ]) * 0.6;
 
                 let val = val - (
-                    (x as i32 - DEFAULT_CHUNK_X_SIZE as i32 / 2).abs()
-                    + (y as i32 - DEFAULT_CHUNK_Y_SIZE as i32 / 2).abs()
-                    + (z as i32 - DEFAULT_CHUNK_Z_SIZE as i32 / 2).abs()
+                    (x as f64 - DEFAULT_CHUNK_X_SIZE as f64 / 2.0).abs() / 10.0
+                    + (y as f64 - DEFAULT_CHUNK_Y_SIZE as f64 / 2.0).abs() / 10.0
+                    + (z as f64 - DEFAULT_CHUNK_Z_SIZE as f64 / 2.0).abs()
                     ) as f64 * 0.01;
 
                 let val = val + 0.5;
@@ -109,11 +109,17 @@ fn main() {
 
     println!("Generating ramps...");
 
+    let vox_count = grid.len();
+
     let mut rampifier = Rampify::new(
         (DEFAULT_LEN_X, DEFAULT_LEN_Y, DEFAULT_LEN_Z),
         grid,
         RampifyConfig::default()
     );
+
+    use std::time::{Duration, Instant};
+
+    let now = Instant::now();
 
     // Generate ramps
     let ramps = &mut rampifier.generate_ramps(true);
@@ -125,7 +131,8 @@ fn main() {
     save.bricks.append(ramps);
     save.bricks.append(ramps2);
 
-    println!(" - Generated {} ramps", ramp_count + ramp2_count);
+    println!(" - Processed {} voxels", vox_count);
+    println!(" - Generated {} ramps in {} seconds", ramp_count + ramp2_count, now.elapsed().as_millis() as f64 / 1000.0);
 
     // Move grid back out of the rampifier to do further processing.
     let mut grid = rampifier.move_grid();
