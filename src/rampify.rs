@@ -1,6 +1,8 @@
+use std::collections::HashSet;
 use brickadia::save::{Brick, BrickColor, Color, Size, Direction, Rotation};
 use std::vec;
 use std::ops;
+use vox_format::chunk::ChunkId::Vox;
 
 #[derive(Copy, Clone, Debug)]
 pub struct VoxVector (pub isize, pub isize, pub isize);
@@ -62,6 +64,22 @@ impl VoxVector {
             Rotation::Deg270 => VoxVector(0, 1, 0),
         }
     }
+
+    fn up() -> Self {
+        Self(0, 0, 1)
+    }
+
+    fn down() -> Self {
+        Self(0, 0, -1)
+    }
+
+    fn abs(self) -> Self {
+        Self (
+            self.0.abs(),
+            self.1.abs(),
+            self.2.abs(),
+        )
+    }
 }
 
 pub struct RampifyConfig {
@@ -78,10 +96,16 @@ pub struct RampifyConfig {
     pub wedge_max_rise: usize,
 
     // How many steps should the height increase? Eg. a value of 3 would only allow 1 brick high ramps.
-    pub ramp_min_height: usize,
+    pub ramp_min_rise: usize,
 
     // How many steps should the wedge increase? Eg. a value of 3 would only allow 1 brick high ramps.
-    pub wedge_step_height: usize,
+    pub ramp_rise_step: usize,
+
+    // How many steps should the wedge increase? Eg. a value of 3 would only allow 1 brick high ramps.
+    pub wedge_rise_step: usize,
+
+    // Enable wedges?
+    pub use_wedge: bool,
 
     // Index of the cube brick to use. Usually PB_DefaultBrick, but it can be any kind of cubic brick.
     pub brick_index: u32,
@@ -104,8 +128,10 @@ impl Default for RampifyConfig {
             ramp_max_run: 4,
             ramp_max_rise: 12,
             wedge_max_rise: 2,
-            ramp_min_height: 2,
-            wedge_step_height: 2,
+            ramp_min_rise: 1,
+            ramp_rise_step: 1,
+            wedge_rise_step: 2,
+            use_wedge: false,
             brick_index: 0,
             ramp_index: 1,
             wedge_index: 2,
@@ -120,8 +146,10 @@ impl RampifyConfig {
         ramp_max_run: usize,
         ramp_max_rise: usize,
         wedge_max_rise: usize,
-        ramp_step_height: usize,
-        wedge_step_height: usize,
+        ramp_min_rise: usize,
+        ramp_rise_step: usize,
+        wedge_rise_step: usize,
+        use_wedge: bool,
         brick_index: u32,
         ramp_index: u32,
         wedge_index: u32,
@@ -132,12 +160,14 @@ impl RampifyConfig {
             ramp_max_run,
             ramp_max_rise,
             wedge_max_rise,
-            ramp_min_height: ramp_step_height,
-            wedge_step_height,
+            ramp_min_rise,
+            ramp_rise_step,
+            wedge_rise_step,
+            use_wedge,
             brick_index,
             ramp_index,
             wedge_index,
-            brick_size,
+            brick_size
         }
     }
 
@@ -147,8 +177,10 @@ impl RampifyConfig {
             ramp_max_run: 4,
             ramp_max_rise: 12,
             wedge_max_rise: 12,
-            ramp_min_height: 1,
-            wedge_step_height: 1,
+            ramp_min_rise: 1,
+            ramp_rise_step: 1,
+            wedge_rise_step: 1,
+            use_wedge: false,
             brick_index: micro_cube_index,
             ramp_index: micro_ramp_index,
             wedge_index: micro_ramp_index,
@@ -159,15 +191,17 @@ impl RampifyConfig {
     pub fn x4cube(micro_cube_index: u32, micro_ramp_index: u32) -> Self {
         Self {
             ramp_max_width: 2,
-            ramp_max_run: 4,
-            ramp_max_rise: 12,
+            ramp_max_rise: 4,
             wedge_max_rise: 12,
-            ramp_min_height: 1,
-            wedge_step_height: 1,
+            ramp_min_rise: 1,
+            ramp_rise_step: 0,
+            wedge_rise_step: 1,
+            use_wedge: false,
             brick_index: micro_cube_index,
             ramp_index: micro_ramp_index,
             wedge_index: micro_ramp_index,
             brick_size: (20, 20, 20),
+            ramp_max_run: 4
         }
     }
 }
@@ -181,6 +215,9 @@ pub struct Rampify {
 
     // Configuration settings to alter how ramps are generated.
     config: RampifyConfig,
+
+    // Grid indices occupied by ramps.
+    ramp_indices: HashSet<usize>
 }
 
 impl Rampify {
@@ -191,6 +228,7 @@ impl Rampify {
             size: (w, l, h),
             grid,
             config,
+            ramp_indices: HashSet::new(),
         }
     }
 
@@ -236,6 +274,14 @@ impl Rampify {
             return self.get_point((pos.0 as usize, pos.1 as usize, pos.2 as usize));
         }
         u8::MAX
+    }
+
+    fn ramp_exists(&self, pos: VoxVector) -> bool {
+        if self.is_bounded(pos) {
+            let current_index = self.grid_index((pos.0 as usize, pos.1 as usize, pos.2 as usize));
+            return self.ramp_indices.contains(&current_index);
+        }
+        false
     }
 
     // This uses u8::MAX to identify an empty voxel. Should we use Option<u8> instead?
@@ -294,6 +340,10 @@ impl Rampify {
             let has_air = !self.vox_exists(pos + up + (forward * run));
             let has_vox_forward = self.vox_exists(pos + (forward * (run + 1)));
 
+            if self.ramp_exists(pos + (forward * (run + 1))) {
+                return None;
+            }
+
             if has_air && has_vox_forward {
                 run += 1;
             }
@@ -310,6 +360,10 @@ impl Rampify {
         for i in 1..self.config.ramp_max_rise {
             // Rise until we hit the limit or we find air above (or below if ceiling).
             let pos_air = pos + (up * (rise)) + (forward * (run));
+
+            if self.ramp_exists(pos + (forward * (run + 1))) {
+                return None;
+            }
 
             if self.vox_exists(pos_air) {
                 // We've rose too long, this won't be valid.
@@ -332,7 +386,7 @@ impl Rampify {
             let pos = pos + forward * i as isize;
 
             // Is there air above and ahead of this ramp?
-            if !self.vox_exists(pos) {
+            if !self.vox_exists(pos) && !self.ramp_exists(pos) {
                 add_one = 1;
             }
             else {
@@ -347,8 +401,12 @@ impl Rampify {
             return None;
         }
 
-        if rise < self.config.ramp_min_height as isize {
+        if rise - 1 < self.config.ramp_min_rise as isize {
             return None;
+        }
+
+        if rise - 1 == 2 && self.config.use_wedge {
+            run -= 1;
         }
 
         Some((run as usize + 1, rise as usize - 1))
@@ -513,7 +571,6 @@ impl Rampify {
         rise: usize,
         rotation: Rotation,
         color: BrickColor,
-        delete_space: bool,
         is_floor: bool
     ) -> Brick {
         let mut ramp = Brick::default();
@@ -522,7 +579,7 @@ impl Rampify {
             pos
         }
         else {
-            pos - VoxVector(0, 0, rise as isize)
+            pos - VoxVector(0, 0, rise as isize - 1)
         };
 
         let x = pos.0 as i32;
@@ -552,6 +609,22 @@ impl Rampify {
             ramp.position = Self::offset_pos(ramp.position, size, ramp.rotation.clone());
         }
 
+        // Add voxel grid indices occupied by this ramp
+        for i in 0..run as isize {
+            for j in 0..rise as isize {
+                let forward = VoxVector::forward_vec(ramp.rotation.clone());
+                let up = VoxVector::up();
+
+                let pos = pos + forward * i as isize + up * j as isize;
+
+                if self.is_bounded(pos) {
+                    let index = self.grid_index((pos.0 as usize, pos.1 as usize, pos.2 as usize));
+                    self.ramp_indices.insert(index);
+                }
+            }
+        }
+
+        // Needed because changing the direction doesn't mirror the brick on Z.
         if !is_floor {
             ramp.rotation = match ramp.rotation {
                 Rotation::Deg0 => Rotation::Deg180,
@@ -560,26 +633,7 @@ impl Rampify {
             }
         }
 
-        if delete_space {
-            //self.box_remove(pos, size);
-        }
-
         ramp
-    }
-
-    // Remove the voxels occupied by this ramp.
-    fn box_remove(&mut self, pos: VoxVector, size: VoxVector) {
-        let VoxVector(x, y, z) = pos;
-        let VoxVector(w, l, h) = size;
-
-        for i in 0..w {
-            for j in 0..l {
-                for k in 0..h {
-                    let p = VoxVector(x + i, y + j, z + k);
-                    self.set_point_safe(p, 0);
-                }
-            }
-        }
     }
 
     // Process voxel grid and return ramps generated by the algorithm.
@@ -588,7 +642,7 @@ impl Rampify {
 
         // Estimate amount to reserve, prevent allocations where possible.
         // Based on testing, ramps count for < ~2% of voxels, but this can vary.
-        let est: usize = ((self.size.0 * self.size.1 * self.size.2) as f32 * 0.02) as usize;
+        let est = ((self.size.0 * self.size.1 * self.size.2) as f32 * 0.02) as usize;
         ramps.reserve(est);
 
         let w = self.size.0 as isize;
@@ -603,7 +657,7 @@ impl Rampify {
                     let pos = VoxVector(x, y, z);
 
                     // Is there a voxel here?
-                    if self.vox_exists_unsafe(pos) {
+                    if self.vox_exists_unsafe(pos) && !self.ramp_exists(pos) {
                         // Is there a candidate for a ramp?
                         if let Some(rot) = self.best_ramp_rotation(pos, gen_floor_else_ceil) {
                             if let Some((run, rise)) = self.fit_ramp(pos, rot.clone(), gen_floor_else_ceil) {
@@ -614,7 +668,7 @@ impl Rampify {
                                     a: 255
                                 });
 
-                                let ramp = self.create_ramp(pos, run, rise, rot, color, true, gen_floor_else_ceil);
+                                let ramp = self.create_ramp(pos, run, rise, rot, color, gen_floor_else_ceil);
                                 ramps.push(ramp);
                             }
                         }
@@ -624,5 +678,11 @@ impl Rampify {
         }
 
         ramps
+    }
+
+    pub fn remove_occupied_voxels(&mut self) {
+        for &index in &self.ramp_indices {
+            self.grid[index] = u8::MAX;
+        }
     }
 }
