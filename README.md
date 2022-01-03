@@ -8,7 +8,7 @@
 This repository hosts a sample terrain generation tool and the `rampifier` module, which
 works best for organic voxel meshes.
 
-## How
+## Terrain Generation
 This sample tool generates bricks in 3 passes:
 - Voxel noise generation (Simple 3D array)
 - Rampifier, which generates ramps based upon a voxel input.
