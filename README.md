@@ -1,7 +1,7 @@
 <h1 align=center>Rampified Terrain Generator</h1>
 
 <p align=center>
-<img src=https://user-images.githubusercontent.com/7478134/147531396-22f250a8-4ce7-486c-8170-89548e8ecf14.png>
+<img src=https://user-images.githubusercontent.com/7478134/147893120-d88c29b9-d013-447b-b8f5-f3c7f0b961af.png>
 </p>
 <br>
 
