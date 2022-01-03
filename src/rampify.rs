@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use brickadia::save::{Brick, BrickColor, Color, Size, Direction, Rotation};
 use std::vec;
 use std::ops;
@@ -210,8 +210,8 @@ pub struct Rampify {
     // Size of this voxel grid.
     size: (usize, usize, usize),
 
-    // The Voxel grid, contains u8 corresponding to the brick's color id. u8::MAX = none.
-    grid: Vec<u8>,
+    // The Voxel grid, contains a value corresponding to a brick's color id.
+    grid: Vec<Option<u8>>,
 
     // Configuration settings to alter how ramps are generated.
     config: RampifyConfig,
@@ -221,7 +221,7 @@ pub struct Rampify {
 }
 
 impl Rampify {
-    pub fn new(size: (usize, usize, usize), grid: Vec<u8>, config: RampifyConfig) -> Self {
+    pub fn new(size: (usize, usize, usize), grid: Vec<Option<u8>>, config: RampifyConfig) -> Self {
         let (w, l, h) = size;
 
         Self {
@@ -232,7 +232,7 @@ impl Rampify {
         }
     }
 
-    pub fn move_grid(self) -> Vec<u8> {
+    pub fn move_grid(self) -> Vec<Option<u8>> {
         self.grid
     }
 
@@ -247,10 +247,10 @@ impl Rampify {
 
     fn set_point(&mut self, pos: (usize, usize, usize), value: u8) {
         let index = self.grid_index((pos.0, pos.1, pos.2));
-        self.grid[index] = value;
+        self.grid[index] = Some(value);
     }
 
-    fn get_point(&self, pos: (usize, usize, usize)) -> u8 {
+    fn get_point(&self, pos: (usize, usize, usize)) -> Option<u8> {
         self.grid[self.grid_index((pos.0, pos.1, pos.2))]
     }
 
@@ -269,11 +269,11 @@ impl Rampify {
         }
     }
 
-    fn get_point_safe(&self, pos: VoxVector) -> u8 {
+    fn get_point_safe(&self, pos: VoxVector) -> Option<u8> {
         if self.is_bounded(pos) {
             return self.get_point((pos.0 as usize, pos.1 as usize, pos.2 as usize));
         }
-        u8::MAX
+        None
     }
 
     fn ramp_exists(&self, pos: VoxVector) -> bool {
@@ -284,13 +284,13 @@ impl Rampify {
         false
     }
 
-    // This uses u8::MAX to identify an empty voxel. Should we use Option<u8> instead?
+    // Returns true if there is a valid value.
     fn vox_exists(&self, pos: VoxVector) -> bool {
-        self.get_point_safe(pos) != u8::MAX
+        self.get_point_safe(pos) != None
     }
 
     fn vox_exists_unsafe(&self, pos: VoxVector) -> bool {
-        self.grid[self.grid_index((pos.0 as usize, pos.1 as usize, pos.2 as usize))] != u8::MAX
+        self.grid[self.grid_index((pos.0 as usize, pos.1 as usize, pos.2 as usize))] != None
     }
 
     // Returns change in height from test pt. This only goes upwards, since we scan from the bottom of the world.
@@ -341,7 +341,7 @@ impl Rampify {
             let has_vox_forward = self.vox_exists(pos + (forward * (run + 1)));
 
             if self.ramp_exists(pos + (forward * (run + 1))) {
-                return None;
+                break;
             }
 
             if has_air && has_vox_forward {
@@ -362,7 +362,7 @@ impl Rampify {
             let pos_air = pos + (up * (rise)) + (forward * (run));
 
             if self.ramp_exists(pos + (forward * (run + 1))) {
-                return None;
+                break;
             }
 
             if self.vox_exists(pos_air) {
@@ -570,7 +570,6 @@ impl Rampify {
         run: usize,
         rise: usize,
         rotation: Rotation,
-        color: BrickColor,
         is_floor: bool
     ) -> Brick {
         let mut ramp = Brick::default();
@@ -596,8 +595,6 @@ impl Rampify {
         ramp.rotation = rotation;
 
         ramp.position = (x * brick_w as i32 * 2, y * brick_l as i32 * 2, z * brick_h as i32 * 2);
-        ramp.color = color;
-
         {
             let run = run as u32;
             let rise = rise as u32;
@@ -610,6 +607,8 @@ impl Rampify {
         }
 
         // Add voxel grid indices occupied by this ramp
+        let mut mode_values: HashMap<u8, u32> = HashMap::new();
+
         for i in 0..run as isize {
             for j in 0..rise as isize {
                 let forward = VoxVector::forward_vec(ramp.rotation.clone());
@@ -620,9 +619,21 @@ impl Rampify {
                 if self.is_bounded(pos) {
                     let index = self.grid_index((pos.0 as usize, pos.1 as usize, pos.2 as usize));
                     self.ramp_indices.insert(index);
+                    if let Some(value) = self.grid[index] {
+                        *mode_values.entry(value).or_insert(0) += 1;
+                    }
                 }
             }
         }
+
+        // We're guaranteed a color index if the ramp is being created, so we can unwrap safely.
+        let mode_color = mode_values
+            .into_iter()
+            .max_by_key(|&(_, count)| count)
+            .map(|(val, _)| val)
+            .unwrap();
+
+        ramp.color = BrickColor::Index(mode_color as u32);
 
         // Needed because changing the direction doesn't mirror the brick on Z.
         if !is_floor {
@@ -661,14 +672,7 @@ impl Rampify {
                         // Is there a candidate for a ramp?
                         if let Some(rot) = self.best_ramp_rotation(pos, gen_floor_else_ceil) {
                             if let Some((run, rise)) = self.fit_ramp(pos, rot.clone(), gen_floor_else_ceil) {
-                                let color = BrickColor::Unique(Color {
-                                    r: ((x as f32 / w as f32) * 255.0) as u8,
-                                    g: ((y as f32 / l as f32) * 255.0) as u8,
-                                    b: ((z as f32 / h as f32) * 255.0) as u8,
-                                    a: 255
-                                });
-
-                                let ramp = self.create_ramp(pos, run, rise, rot, color, gen_floor_else_ceil);
+                                let ramp = self.create_ramp(pos, run, rise, rot, gen_floor_else_ceil);
                                 ramps.push(ramp);
                             }
                         }
@@ -682,7 +686,7 @@ impl Rampify {
 
     pub fn remove_occupied_voxels(&mut self) {
         for &index in &self.ramp_indices {
-            self.grid[index] = u8::MAX;
+            self.grid[index] = None;
         }
     }
 }
