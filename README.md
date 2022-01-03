@@ -13,3 +13,6 @@ This sample tool generates bricks in 3 passes:
 - Voxel noise generation (Simple 3D array)
 - Rampifier, which generates ramps based upon a voxel input.
 - Optimize voxels into bricks (box-fill)
+
+## How do I use this?
+This may not be useful by itself for many people. If you are familiar with Rust, you can download this project and modify `main.rs` to generate different kinds of terrain with the `noise-rs` library included. Otherwise, you can implement the `rampifier.rs` module in your own Rust programs and play with the output.
