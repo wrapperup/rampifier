@@ -1,8 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use brickadia::save::{Brick, BrickColor, Color, Size, Direction, Rotation};
-use std::vec;
-use std::ops;
-use vox_format::chunk::ChunkId::Vox;
+use std::{ vec, ops };
 
 #[derive(Copy, Clone, Debug)]
 pub struct VoxVector (pub isize, pub isize, pub isize);
@@ -82,7 +80,7 @@ impl VoxVector {
     }
 }
 
-pub struct RampifyConfig {
+pub struct RampifierConfig {
     // How wide the ramp can be TODO: This doesn't do anything yet
     pub ramp_max_width: usize,
 
@@ -121,7 +119,7 @@ pub struct RampifyConfig {
     pub brick_size: (u32, u32, u32)
 }
 
-impl Default for RampifyConfig {
+impl Default for RampifierConfig {
     fn default() -> Self {
         Self {
             ramp_max_width: 2,
@@ -140,7 +138,7 @@ impl Default for RampifyConfig {
     }
 }
 
-impl RampifyConfig {
+impl RampifierConfig {
     pub fn new(
         ramp_max_width: usize,
         ramp_max_run: usize,
@@ -206,7 +204,7 @@ impl RampifyConfig {
     }
 }
 
-pub struct Rampify {
+pub struct Rampifier {
     // Size of this voxel grid.
     size: (usize, usize, usize),
 
@@ -214,14 +212,14 @@ pub struct Rampify {
     grid: Vec<Option<u8>>,
 
     // Configuration settings to alter how ramps are generated.
-    config: RampifyConfig,
+    config: RampifierConfig,
 
     // Grid indices occupied by ramps.
     ramp_indices: HashSet<usize>
 }
 
-impl Rampify {
-    pub fn new(size: (usize, usize, usize), grid: Vec<Option<u8>>, config: RampifyConfig) -> Self {
+impl Rampifier {
+    pub fn new(size: (usize, usize, usize), grid: Vec<Option<u8>>, config: RampifierConfig) -> Self {
         let (w, l, h) = size;
 
         Self {
@@ -236,7 +234,7 @@ impl Rampify {
         self.grid
     }
 
-    pub fn with_config(mut self, config: RampifyConfig) -> Self {
+    pub fn with_config(mut self, config: RampifierConfig) -> Self {
         self.config = config;
         self
     }

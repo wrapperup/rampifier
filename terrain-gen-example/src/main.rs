@@ -1,8 +1,9 @@
-mod rampify;
+mod consts;
+use consts::DEFAULT_PALETTE;
 
 use std::{env, fs, fs::File};
 use noise::{RidgedMulti, Seedable};
-use crate::rampify::{Rampify, RampifyConfig};
+use rampifier::{RampifierConfig, Rampifier};
 use brickadia::{
     save::*,
     write::SaveWriter,
@@ -64,9 +65,7 @@ fn main() {
             "PB_DefaultRampCrest".into(),
         ];
 
-    // Read colors from sample save.
-    let mut reader = SaveReader::new(fs::File::open("./default_colors.brs").unwrap()).unwrap();
-    save.header2.colors = reader.read_all().unwrap().header2.colors;
+    save.header2.colors = DEFAULT_PALETTE.to_vec();
 
 
     /////////////////////////////////////////////////////////////
@@ -214,10 +213,10 @@ fn main() {
 
     let vox_count = grid.len();
 
-    let mut rampifier = Rampify::new(
+    let mut rampifier = Rampifier::new(
         (DEFAULT_LEN_X, DEFAULT_LEN_Y, DEFAULT_LEN_Z),
         grid,
-        RampifyConfig::default()
+        RampifierConfig::default()
     );
 
     use std::time::{Duration, Instant};

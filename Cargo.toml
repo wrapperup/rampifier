@@ -1,17 +1,9 @@
-[package]
-name = "br-ramp-terrain"
-version = "0.1.0"
-edition = "2021"
-
-[profile.dev]
-opt-level = 0
+[workspace]
+members = [
+    "plate-rampifier",
+    "rampifier",
+    "terrain-gen-example",
+]
 
 [profile.release]
-opt-level = 3
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-brickadia = "0.1"
-noise = "0.7.0"
-vox-format = "0.1.0"
+opt-level = 2
