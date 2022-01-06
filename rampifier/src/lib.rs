@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use brickadia::save::{Brick, BrickColor, Color, Size, Direction, Rotation};
-use std::{ vec, ops };
+use brickadia::save::{Brick, BrickColor, Size, Direction, Rotation};
+use std::{ ops };
 
 #[derive(Copy, Clone, Debug)]
 pub struct VoxVector (pub isize, pub isize, pub isize);
@@ -65,18 +65,6 @@ impl VoxVector {
 
     fn up() -> Self {
         Self(0, 0, 1)
-    }
-
-    fn down() -> Self {
-        Self(0, 0, -1)
-    }
-
-    fn abs(self) -> Self {
-        Self (
-            self.0.abs(),
-            self.1.abs(),
-            self.2.abs(),
-        )
     }
 }
 
@@ -243,11 +231,6 @@ impl Rampifier {
         pos.0 + pos.1 * self.size.0 as usize + pos.2  * self.size.0 as usize * self.size.1 as usize
     }
 
-    fn set_point(&mut self, pos: (usize, usize, usize), value: u8) {
-        let index = self.grid_index((pos.0, pos.1, pos.2));
-        self.grid[index] = Some(value);
-    }
-
     fn get_point(&self, pos: (usize, usize, usize)) -> Option<u8> {
         self.grid[self.grid_index((pos.0, pos.1, pos.2))]
     }
@@ -259,12 +242,6 @@ impl Rampifier {
 
         x >= 0 && y >= 0 && z >= 0 &&
             x < w as isize && y < l as isize && z < h as isize
-    }
-
-    fn set_point_safe(&mut self, pos: VoxVector, value: u8) {
-        if self.is_bounded(pos) {
-            self.set_point((pos.0 as usize, pos.1 as usize, pos.2 as usize), value);
-        }
     }
 
     fn get_point_safe(&self, pos: VoxVector) -> Option<u8> {
@@ -320,7 +297,6 @@ impl Rampifier {
 
     // Returns length and height of a ramp.
     fn fit_ramp(&self, pos: VoxVector, rot: Rotation, is_floor: bool) -> Option<(usize, usize)> {
-        let VoxVector(x, y, z) = pos;
         let forward = VoxVector::forward_vec(rot);
         let up = if is_floor {
             VoxVector(0, 0,  1)
@@ -333,7 +309,7 @@ impl Rampifier {
         let mut rise = 0isize;
 
         // Try increasing the run.
-        for i in 0..self.config.ramp_max_run - 1 {
+        for _ in 0..self.config.ramp_max_run - 1 {
             // If the vox above is air (or below if ceiling), we continue running.
             let has_air = !self.vox_exists(pos + up + (forward * run));
             let has_vox_forward = self.vox_exists(pos + (forward * (run + 1)));
@@ -355,15 +331,11 @@ impl Rampifier {
             return None;
         }
 
-        for i in 1..self.config.ramp_max_rise {
+        for _ in 1..self.config.ramp_max_rise {
             // Rise until we hit the limit or we find air above (or below if ceiling).
             let pos_air = pos + (up * (rise)) + (forward * (run));
 
-            if self.ramp_exists(pos + (forward * (run + 1))) {
-                break;
-            }
-
-            if self.vox_exists(pos_air) {
+            if self.vox_exists(pos_air) && !self.ramp_exists(pos_air) {
                 // We've rose too long, this won't be valid.
                 if rise == self.config.ramp_max_rise as isize {
                     return None;

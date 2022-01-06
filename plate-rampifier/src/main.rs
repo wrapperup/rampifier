@@ -1,4 +1,4 @@
-use std::{env, fs, fs::File};
+use std::{env, fs::File, time::Instant};
 use rampifier::{RampifierConfig, Rampifier};
 use brickadia::{
     save::*,
@@ -63,7 +63,7 @@ fn main() {
 
     let fix_brick_pos = |brick: &Brick| -> (i32, i32, i32) {
         let (mut x, mut  y, mut  z) = brick.position;
-        if let Size::Procedural(mut w_half, mut l_half, mut h_half) = brick.size {
+        if let Size::Procedural(w_half, l_half, h_half) = brick.size {
             x -= w_half as i32;
             y -= l_half as i32;
             z -= h_half as i32;
@@ -95,7 +95,6 @@ fn main() {
 
     println!("Converting .brs into voxels...");
 
-    use std::time::{Duration, Instant};
     let now = Instant::now();
 
     // Find bounds for bricks.
@@ -103,7 +102,7 @@ fn main() {
     let mut max_bounds = (i32::MIN, i32::MIN, i32::MIN);
 
     for brick in &in_save.bricks {
-        if let Size::Procedural(mut w_half, mut l_half, mut h_half) = brick.size {
+        if let Size::Procedural(w_half, l_half, h_half) = brick.size {
             let w = w_half as i32 / 5;
             let l = l_half as i32 / 5;
             let h = h_half as i32 / 2;
@@ -139,7 +138,7 @@ fn main() {
     let mut grid: Vec<Option<u8>> = vec![None; grid_size.0 * grid_size.1 * grid_size.2];
 
     for brick in &in_save.bricks {
-        if let Size::Procedural(mut w_half, mut l_half, mut h_half) = brick.size {
+        if let Size::Procedural(w_half, l_half, h_half) = brick.size {
             let pos = fix_brick_pos(&brick);
             let pos = (
                 (pos.0 - min_bounds.0) as usize,
@@ -225,7 +224,6 @@ fn main() {
         RampifierConfig::default()
     );
 
-    use std::time::{Duration, Instant};
     let now = Instant::now();
 
     // Generate ramps for floor and ceiling.
