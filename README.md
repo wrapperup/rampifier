@@ -19,7 +19,7 @@ This is a sample tool created that takes plates and rampifies it. May be super u
 [Download Plate Rampifier from here](https://github.com/Wrapperup/rampifier/releases)
 
 ### Preparing in.brs
-Simply make sure your build is plate aligned. Plates can be resized, and you can use microbricks as long as they are plate sized and plate shaped (so may as well use plates!) Ensure it is aligned to Plate's grid for best results.
+Simply make sure your build is plate aligned. Plates can be resized, and you can use microbricks as long as they are plate sized and plate shaped (so may as well use plates!) Ensure it is aligned to Plate's grid for best results. Your bricks must use a color from your save's color palette. Rampifier will not rampify bricks with custom colors outside of your color palette.
 
 ### Generating out.brs
 Rampifier takes two arguments, the input of the save file and the output `.brs` path. 
