@@ -8,7 +8,7 @@
 This is a sample tool created that takes plates and rampifies it. May be super useful for creating (organic) brick props like trees, rocks, terrain, etc.
 
 ## Using Plate Rampifier
-See releases for binary downloads.
+[Download Plate Rampifier from here](https://github.com/Wrapperup/rampifier/releases)
 
 ### Preparing in.brs
 Simply make sure your build is plate aligned. Plates can be resized, and you can use microbricks as long as they are plate sized and plate shaped (so may as well use plates!) Ensure it is aligned to Plate's grid for best results.
@@ -17,4 +17,4 @@ Simply make sure your build is plate aligned. Plates can be resized, and you can
 Rampifier takes two arguments, the input of the save file and the output `.brs` path. 
 
 For example, use
-`plate-rampifier my_input.brs the_output.brs` or any path to rampify a save. If either are not specified, `in.brs` and `out.brs` are used in the same directory as the binary file.
+`plate-rampifier the_output.brs my_input.brs` or any path to rampify a save. If either are not specified, `in.brs` and `out.brs` are used in the same directory as the binary file.
