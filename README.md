@@ -1,8 +1,9 @@
 # `rampifier` repository
-This repo contains the `rampifier` library, and some nifty little tools.
+This repo contains the `rampifier` library, and some useful tools using it.
 
 ## Crates
 * [Plate Rampifier](https://github.com/Wrapperup/rampifier/tree/master/plate-rampifier)
+  - Also useful with [obj2brs](https://github.com/Kmschr/obj2brs)!
 * [Rampified Terrain Generator](https://github.com/Wrapperup/rampifier/tree/master/terrain-gen-example)
 * [Rampifier Crate](https://github.com/Wrapperup/rampifier/tree/master/rampifier)
 
