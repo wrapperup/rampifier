@@ -1,4 +1,4 @@
-#`rampifier`
+# `rampifier`
 The library to manage and create smooth ramps based on a voxel input.
 
 ## Using `rampifier` in your own tools
