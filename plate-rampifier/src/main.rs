@@ -21,18 +21,18 @@ fn main() {
 
     if args.len() == 2
     {
-        out_save_location = &args[1];
+        in_save_location = &args[1];
     }
 
     if args.len() > 2
     {
-        out_save_location = &args[1];
-        in_save_location = &args[2];
+        in_save_location = &args[1];
+        out_save_location = &args[2];
     }
 
     let public = User {
-        name: "Terrain".into(),
-        id: "a8033bee-6c37-4118-b4a6-cecc1d966132".parse().unwrap(),
+        name: "rampifier".into(),
+        id: "a8033bee-6c37-4118-b4a6-cecc1d966134".parse().unwrap(),
     };
 
     let mut out_save = SaveData::default();
@@ -295,6 +295,7 @@ fn main() {
                                 }
 
                                 brick.color = BrickColor::Index(val as u32);
+                                brick.owner_index = 1;
 
                                 out_save.bricks.push(brick);
                             }

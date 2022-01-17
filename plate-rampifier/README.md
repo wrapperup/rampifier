@@ -17,4 +17,4 @@ Simply make sure your build is plate aligned. Plates can be resized, and you can
 Rampifier takes two arguments, the input of the save file and the output `.brs` path. 
 
 For example, use
-`plate-rampifier the_output.brs my_input.brs` or any path to rampify a save. If either are not specified, `in.brs` and `out.brs` are used in the same directory as the binary file.
+`plate-rampifier my_input.brs the_output.brs` or any path to rampify a save. If either are not specified, `in.brs` and `out.brs` are used in the same directory as the binary file.

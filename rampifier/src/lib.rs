@@ -104,7 +104,10 @@ pub struct RampifierConfig {
 
     // The size of a single brick when converting voxels to brick.
     // This must be set correctly or this will generate invalid brick sizes.
-    pub brick_size: (u32, u32, u32)
+    pub brick_size: (u32, u32, u32),
+
+    // Owner index to use for newly created bricks.
+    pub owner_index: u32,
 }
 
 impl Default for RampifierConfig {
@@ -122,6 +125,7 @@ impl Default for RampifierConfig {
             ramp_index: 1,
             wedge_index: 2,
             brick_size: (5, 5, 2),
+            owner_index: 1,
         }
     }
 }
@@ -140,6 +144,7 @@ impl RampifierConfig {
         ramp_index: u32,
         wedge_index: u32,
         brick_size: (u32, u32, u32),
+        owner_index: u32,
     ) -> Self {
         Self {
             ramp_max_width,
@@ -153,7 +158,8 @@ impl RampifierConfig {
             brick_index,
             ramp_index,
             wedge_index,
-            brick_size
+            brick_size,
+            owner_index,
         }
     }
 
@@ -171,6 +177,7 @@ impl RampifierConfig {
             ramp_index: micro_ramp_index,
             wedge_index: micro_ramp_index,
             brick_size: (1, 1, 1),
+            owner_index: 1,
         }
     }
 
@@ -187,7 +194,8 @@ impl RampifierConfig {
             ramp_index: micro_ramp_index,
             wedge_index: micro_ramp_index,
             brick_size: (20, 20, 20),
-            ramp_max_run: 4
+            ramp_max_run: 4,
+            owner_index: 1,
         }
     }
 }
@@ -563,6 +571,7 @@ impl Rampifier {
         ramp.asset_name_index = if run < 2 { self.config.wedge_index } else { self.config.ramp_index };
         ramp.direction = if is_floor { Direction::ZPositive } else { Direction::ZNegative };
         ramp.rotation = rotation;
+        ramp.owner_index = self.config.owner_index;
 
         ramp.position = (x * brick_w as i32 * 2, y * brick_l as i32 * 2, z * brick_h as i32 * 2);
         {
